@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Market Equilibrium Lab</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #1a2030;
+      --muted: #5f6b85;
+      --accent: #4f8cff;
+      --demand: #f85f73;
+      --supply: #22b07d;
+      --eq: #ffb547;
+      --border: #dce3f0;
+      --chip: #eef3ff;
+      --shadow: 0 14px 30px rgba(12, 23, 52, 0.08);
+    }
+
+    body.dark {
+      --bg: #111827;
+      --panel: #1f2937;
+      --text: #f3f4f6;
+      --muted: #c3ccd9;
+      --accent: #75a4ff;
+      --demand: #ff7e8d;
+      --supply: #47d7a5;
+      --eq: #ffd369;
+      --border: #334155;
+      --chip: #263348;
+      --shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(79, 140, 255, 0.16), transparent), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1280px;
+      margin: 1rem auto;
+      padding: 0.85rem;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 0.85rem;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .header {
+      padding: 1rem 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .75rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2.3vw, 1.8rem);
+      letter-spacing: .2px;
+    }
+
+    .header-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    button, .btn {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 10px;
+      padding: .5rem .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .18s ease, background .18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #7ab2ff);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .45rem;
+      padding: .5rem;
+    }
+
+    .tab-btn.active {
+      background: var(--chip);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: .85rem;
+      min-height: 580px;
+    }
+
+    .graph-wrap {
+      padding: .85rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #marketGraph {
+      width: 100%;
+      height: min(68vh, 620px);
+      display: block;
+      background: linear-gradient(180deg, rgba(255,255,255,.25), transparent);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .floating-card {
+      position: absolute;
+      top: 1.2rem;
+      left: 1.2rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: .6rem .75rem;
+      border-radius: 12px;
+      max-width: 340px;
+      font-size: .94rem;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .side {
+      padding: .85rem;
+      display: grid;
+      gap: .65rem;
+      align-content: start;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: .5rem;
+    }
+
+    .card {
+      background: var(--chip);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .55rem;
+    }
+
+    .label { font-size: .78rem; color: var(--muted); }
+    .value { font-size: 1rem; font-weight: 700; }
+
+    .controls h3, .explain h3 { margin: .2rem 0 .5rem 0; }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .4rem;
+      align-items: center;
+      margin-bottom: .55rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .equations {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .86rem;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-block;
+      padding: .2rem .5rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+    }
+
+    .pill.eq { color: #9a6a00; background: #fff3d5; }
+    .pill.excess-demand { color: #8d1727; background: #ffe1e6; }
+    .pill.excess-supply { color: #0a6e4d; background: #d8f9ec; }
+
+    .small-note {
+      font-size: .8rem;
+      color: var(--muted);
+      margin: .3rem 0;
+    }
+
+    .tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(17, 24, 39, .95);
+      color: #f3f4f6;
+      font-size: .78rem;
+      padding: .34rem .5rem;
+      border-radius: 8px;
+      transform: translate(-50%, -120%);
+      opacity: 0;
+      transition: opacity .1s ease;
+      z-index: 10;
+    }
+
+    .footer-buttons { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      #marketGraph { height: min(58vh, 540px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header panel">
+      <h1>📈 Market Equilibrium Lab</h1>
+      <div class="header-actions">
+        <button id="toggleEqBtn" title="Toggle equations">Hide Equations</button>
+        <button id="teacherBtn" title="Teacher mode with exact answers">Teacher Mode: Off</button>
+        <button id="soundBtn" title="Toggle subtle sound">Sound: On</button>
+        <button id="darkBtn" title="Toggle dark mode">🌙 Dark Mode</button>
+      </div>
+    </header>
+
+    <section class="tabs panel">
+      <button class="tab-btn active" data-mode="learn">Mode 1: Learn</button>
+      <button class="tab-btn" data-mode="challenge">Mode 2: Challenge</button>
+      <button class="tab-btn" data-mode="scenario">Mode 3: Scenario Lab</button>
+    </section>
+
+    <main class="layout">
+      <section class="graph-wrap panel">
+        <svg id="marketGraph" viewBox="0 0 900 620" aria-label="Demand and supply graph"></svg>
+        <div id="floatingMessage" class="floating-card">Move controls to see how the market condition changes in real time.</div>
+      </section>
+
+      <aside class="side panel">
+        <div class="stats" id="scorePanel">
+          <div class="card"><div class="label">Score</div><div class="value" id="scoreValue">0</div></div>
+          <div class="card"><div class="label">Streak</div><div class="value" id="streakValue">0</div></div>
+          <div class="card"><div class="label">Level</div><div class="value" id="levelValue">1</div></div>
+          <div class="card"><div class="label">Timer</div><div class="value" id="timerValue">--</div></div>
+        </div>
+
+        <section class="controls">
+          <h3>Controls</h3>
+          <div class="control-row"><label for="aSlider">Demand Intercept (a)</label><span id="aVal"></span></div>
+          <input id="aSlider" type="range" min="40" max="150" value="100" />
+
+          <div class="control-row"><label for="bSlider">Demand Slope (b)</label><span id="bVal"></span></div>
+          <input id="bSlider" type="range" min="1" max="10" value="4" step="0.5" />
+
+          <div class="control-row"><label for="cSlider">Supply Intercept (c)</label><span id="cVal"></span></div>
+          <input id="cSlider" type="range" min="-20" max="90" value="20" />
+
+          <div class="control-row"><label for="dSlider">Supply Slope (d)</label><span id="dVal"></span></div>
+          <input id="dSlider" type="range" min="1" max="10" value="3" step="0.5" />
+
+          <div class="control-row"><label for="priceSlider">Current Price (P)</label><span id="pVal"></span></div>
+          <input id="priceSlider" type="range" min="0" max="40" value="8" step="0.1" />
+
+          <div class="small-note">Shift controls quickly: use scenario buttons or randomize to test shocks.</div>
+        </section>
+
+        <section class="card" id="equationPanel">
+          <strong>Current Equations</strong>
+          <div class="equations" id="eqText"></div>
+        </section>
+
+        <section class="card">
+          <strong>Market Snapshot</strong>
+          <div class="equations" id="marketText"></div>
+          <div id="conditionPill"></div>
+        </section>
+
+        <section class="explain card">
+          <h3>Explanation</h3>
+          <div id="explanationText" class="small-note">At equilibrium, buyers and sellers agree on quantity.</div>
+          <div class="footer-buttons" style="margin-top:.55rem;">
+            <button id="whyBtn" class="btn-primary">Why?</button>
+            <button id="stepBtn">Step-by-step</button>
+            <button id="randomBtn">Random Scenario</button>
+            <button id="resetBtn">Reset</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div id="tooltip" class="tooltip"></div>
+
+  <script>
+    // ---------- State ----------
+    const state = {
+      mode: "learn",
+      params: { a: 100, b: 4, c: 20, d: 3, price: 8 },
+      ui: {
+        showEquations: true,
+        teacherMode: false,
+        soundOn: true,
+        darkMode: false,
+        stepMode: false
+      },
+      challenge: {
+        score: 0,
+        streak: 0,
+        level: 1,
+        timer: 30,
+        activeTask: null,
+        timerId: null
+      },
+      scenarioIndex: 0
+    };
+
+    const ui = {
+      svg: document.getElementById("marketGraph"),
+      floating: document.getElementById("floatingMessage"),
+      eqText: document.getElementById("eqText"),
+      marketText: document.getElementById("marketText"),
+      explanationText: document.getElementById("explanationText"),
+      conditionPill: document.getElementById("conditionPill"),
+      scoreValue: document.getElementById("scoreValue"),
+      streakValue: document.getElementById("streakValue"),
+      levelValue: document.getElementById("levelValue"),
+      timerValue: document.getElementById("timerValue"),
+      equationPanel: document.getElementById("equationPanel"),
+      tooltip: document.getElementById("tooltip")
+    };
+
+    const sliders = {
+      a: document.getElementById("aSlider"),
+      b: document.getElementById("bSlider"),
+      c: document.getElementById("cSlider"),
+      d: document.getElementById("dSlider"),
+      price: document.getElementById("priceSlider")
+    };
+
+    const axis = {
+      left: 76,
+      right: 850,
+      top: 34,
+      bottom: 560,
+      xMax: 160,
+      yMax: 40
+    };
+
+    // ---------- Economic functions ----------
+    const calcQd = (p, { a, b }) => a - b * p;
+    const calcQs = (p, { c, d }) => c + d * p;
+
+    function solveEquilibrium(params) {
+      const { a, b, c, d } = params;
+      const pStar = (a - c) / (b + d);
+      const qStar = a - b * pStar;
+      return { pStar, qStar };
+    }
+
+    function marketCondition(qd, qs) {
+      const diff = qd - qs;
+      if (Math.abs(diff) < 0.2) return "equilibrium";
+      return diff > 0 ? "excess-demand" : "excess-supply";
+    }
+
+    function explainCondition(cond, p, pStar) {
+      if (cond === "equilibrium") return "At equilibrium, buyers and sellers agree on quantity.";
+      if (cond === "excess-demand") {
+        return `Price (${p.toFixed(1)}) is below equilibrium (${pStar.toFixed(1)}), so demand is greater than supply.`;
+      }
+      return `Price (${p.toFixed(1)}) is above equilibrium (${pStar.toFixed(1)}), so supply is greater than demand.`;
+    }
+
+    // ---------- Drawing ----------
+    const xToPx = q => axis.left + (q / axis.xMax) * (axis.right - axis.left);
+    const yToPx = p => axis.bottom - (p / axis.yMax) * (axis.bottom - axis.top);
+
+    function lineFromModel(getQFromP) {
+      const p0 = 0;
+      const p1 = axis.yMax;
+      return [
+        { q: getQFromP(p0), p: p0 },
+        { q: getQFromP(p1), p: p1 }
+      ];
+    }
+
+    function clipQ(q) {
+      return Math.max(0, Math.min(axis.xMax, q));
+    }
+
+    function drawGraph() {
+      const { a, b, c, d, price } = state.params;
+      const { pStar, qStar } = solveEquilibrium(state.params);
+      const qd = calcQd(price, state.params);
+      const qs = calcQs(price, state.params);
+      const cond = marketCondition(qd, qs);
+
+      ui.svg.innerHTML = "";
+
+      // Grid and axes
+      for (let p = 0; p <= axis.yMax; p += 5) {
+        addLine(xToPx(0), yToPx(p), xToPx(axis.xMax), yToPx(p), "#d3dbeb", p % 10 === 0 ? 1.1 : 0.6);
+      }
+      for (let q = 0; q <= axis.xMax; q += 20) {
+        addLine(xToPx(q), yToPx(0), xToPx(q), yToPx(axis.yMax), "#d3dbeb", q % 40 === 0 ? 1.1 : 0.6);
+      }
+
+      addLine(xToPx(0), yToPx(0), xToPx(axis.xMax), yToPx(0), "#94a3b8", 2);
+      addLine(xToPx(0), yToPx(0), xToPx(0), yToPx(axis.yMax), "#94a3b8", 2);
+
+      addLabel(xToPx(axis.xMax) - 8, yToPx(0) + 30, "Quantity", "end");
+      addLabel(xToPx(0) - 42, yToPx(axis.yMax) + 5, "Price", "start", true);
+
+      // demand and supply lines
+      const demandPts = lineFromModel(p => clipQ(a - b * p));
+      const supplyPts = lineFromModel(p => clipQ(c + d * p));
+
+      addPath(demandPts, "var(--demand)", "Demand");
+      addPath(supplyPts, "var(--supply)", "Supply");
+
+      const eqx = xToPx(clipQ(qStar));
+      const eqy = yToPx(pStar);
+
+      // price line and quantities at chosen price
+      addDashedLine(xToPx(0), yToPx(price), xToPx(axis.xMax), yToPx(price), "#64748b");
+      const qdX = xToPx(clipQ(qd));
+      const qsX = xToPx(clipQ(qs));
+      addDot(qdX, yToPx(price), "var(--demand)", `Qd @ P=${price.toFixed(1)}: ${qd.toFixed(1)}`);
+      addDot(qsX, yToPx(price), "var(--supply)", `Qs @ P=${price.toFixed(1)}: ${qs.toFixed(1)}`);
+
+      // Equilibrium point + guide lines
+      addDashedLine(eqx, eqy, eqx, yToPx(0), "var(--eq)");
+      addDashedLine(eqx, eqy, xToPx(0), eqy, "var(--eq)");
+      addDot(eqx, eqy, "var(--eq)", `Equilibrium: P*=${pStar.toFixed(2)}, Q*=${qStar.toFixed(2)}`, 7.2);
+      addLabel(eqx + 10, eqy - 10, `E (${pStar.toFixed(1)}, ${qStar.toFixed(1)})`, "start");
+
+      if (state.ui.teacherMode) {
+        addLabel(xToPx(2), yToPx(axis.yMax - 1), `Teacher: Exact P*=${pStar.toFixed(3)}, Q*=${qStar.toFixed(3)}`, "start");
+      }
+
+      updatePanels({ qd, qs, pStar, qStar, cond });
+    }
+
+    function addLine(x1, y1, x2, y2, color, width = 1) {
+      const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      Object.assign(l, { x1: String(x1), y1: String(y1), x2: String(x2), y2: String(y2) });
+      l.setAttribute("stroke", color);
+      l.setAttribute("stroke-width", width);
+      ui.svg.appendChild(l);
+    }
+
+    function addDashedLine(x1, y1, x2, y2, color) {
+      const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      Object.assign(l, { x1: String(x1), y1: String(y1), x2: String(x2), y2: String(y2) });
+      l.setAttribute("stroke", color);
+      l.setAttribute("stroke-width", 1.6);
+      l.setAttribute("stroke-dasharray", "6 5");
+      ui.svg.appendChild(l);
+    }
+
+    function addPath(points, color, label) {
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      p.setAttribute("fill", "none");
+      p.setAttribute("stroke", color);
+      p.setAttribute("stroke-width", 3.6);
+      p.setAttribute("stroke-linecap", "round");
+      p.setAttribute("points", points.map(pt => `${xToPx(pt.q)},${yToPx(pt.p)}`).join(" "));
+      p.dataset.tip = label;
+      attachTooltip(p);
+      ui.svg.appendChild(p);
+
+      const mid = points[1];
+      addLabel(xToPx(mid.q) + 6, yToPx(mid.p) + (label === "Demand" ? -8 : 16), label, "start");
+    }
+
+    function addDot(x, y, color, tip, radius = 5.2) {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", x);
+      c.setAttribute("cy", y);
+      c.setAttribute("r", radius);
+      c.setAttribute("fill", color);
+      c.setAttribute("stroke", "#fff");
+      c.setAttribute("stroke-width", "1.6");
+      c.style.transition = "all .25s ease";
+      c.dataset.tip = tip;
+      attachTooltip(c);
+      ui.svg.appendChild(c);
+    }
+
+    function addLabel(x, y, text, anchor = "middle", rotate = false) {
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", x);
+      t.setAttribute("y", y);
+      t.setAttribute("font-size", "14");
+      t.setAttribute("fill", "var(--muted)");
+      t.setAttribute("text-anchor", anchor);
+      if (rotate) t.setAttribute("transform", `rotate(-90 ${x} ${y})`);
+      t.textContent = text;
+      ui.svg.appendChild(t);
+    }
+
+    // ---------- UI update ----------
+    function updatePanels({ qd, qs, pStar, qStar, cond }) {
+      ui.eqText.innerHTML = `Demand: Qd = ${state.params.a.toFixed(1)} - ${state.params.b.toFixed(1)}P<br>
+      Supply: Qs = ${state.params.c.toFixed(1)} + ${state.params.d.toFixed(1)}P<br>
+      Equilibrium: P* = (a - c)/(b + d) = ${pStar.toFixed(2)}, Q* = ${qStar.toFixed(2)}`;
+
+      ui.marketText.innerHTML = `Current P = ${state.params.price.toFixed(1)}<br>
+      Qd = ${qd.toFixed(2)}<br>
+      Qs = ${qs.toFixed(2)}<br>
+      Equilibrium P* = ${pStar.toFixed(2)} | Q* = ${qStar.toFixed(2)}`;
+
+      const tags = {
+        equilibrium: "<span class='pill eq'>Equilibrium</span>",
+        "excess-demand": "<span class='pill excess-demand'>Excess Demand</span>",
+        "excess-supply": "<span class='pill excess-supply'>Excess Supply</span>"
+      };
+      ui.conditionPill.innerHTML = tags[cond];
+
+      const explanation = explainCondition(cond, state.params.price, pStar);
+      ui.floating.textContent = explanation;
+      if (!state.ui.stepMode) ui.explanationText.textContent = explanation;
+
+      document.getElementById("aVal").textContent = state.params.a.toFixed(1);
+      document.getElementById("bVal").textContent = state.params.b.toFixed(1);
+      document.getElementById("cVal").textContent = state.params.c.toFixed(1);
+      document.getElementById("dVal").textContent = state.params.d.toFixed(1);
+      document.getElementById("pVal").textContent = state.params.price.toFixed(1);
+
+      ui.equationPanel.style.display = state.ui.showEquations ? "block" : "none";
+      ui.scoreValue.textContent = state.challenge.score;
+      ui.streakValue.textContent = state.challenge.streak;
+      ui.levelValue.textContent = state.challenge.level;
+      ui.timerValue.textContent = state.mode === "challenge" ? `${state.challenge.timer}s` : "--";
+    }
+
+    // ---------- Modes ----------
+    const challengeTasks = [
+      () => ({
+        text: "Find the equilibrium price (set Current Price near P*).",
+        validator: ({ price }, { pStar }) => Math.abs(price - pStar) <= 0.7
+      }),
+      () => ({
+        text: "Identify excess demand (set price below equilibrium).",
+        validator: ({ price }, { pStar }) => price < pStar - 0.9
+      }),
+      () => ({
+        text: "Identify excess supply (set price above equilibrium).",
+        validator: ({ price }, { pStar }) => price > pStar + 0.9
+      }),
+      () => ({
+        text: "Shift demand right (increase a by at least 8).",
+        baseA: state.params.a,
+        validator: (params, _, task) => params.a >= task.baseA + 8
+      }),
+      () => ({
+        text: "Shift supply left (decrease c by at least 8).",
+        baseC: state.params.c,
+        validator: (params, _, task) => params.c <= task.baseC - 8
+      })
+    ];
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === mode);
+      });
+
+      if (mode === "challenge") startChallengeRound();
+      else stopTimer();
+
+      if (mode === "scenario") runScenario();
+      drawGraph();
+    }
+
+    function startChallengeRound() {
+      const taskFactory = challengeTasks[Math.floor(Math.random() * challengeTasks.length)];
+      state.challenge.activeTask = taskFactory();
+      state.challenge.timer = Math.max(10, 30 - state.challenge.level * 2);
+      ui.explanationText.textContent = `Challenge: ${state.challenge.activeTask.text}`;
+      startTimer();
+    }
+
+    function startTimer() {
+      stopTimer();
+      state.challenge.timerId = setInterval(() => {
+        state.challenge.timer -= 1;
+        if (state.challenge.timer <= 0) {
+          state.challenge.timer = 0;
+          tone(false);
+          ui.explanationText.textContent = "⏱ Time up! New challenge generated.";
+          state.challenge.streak = 0;
+          startChallengeRound();
+        }
+        drawGraph();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (state.challenge.timerId) clearInterval(state.challenge.timerId);
+      state.challenge.timerId = null;
+    }
+
+    function evaluateChallenge() {
+      if (state.mode !== "challenge" || !state.challenge.activeTask) return;
+      const eq = solveEquilibrium(state.params);
+      const ok = state.challenge.activeTask.validator(state.params, eq, state.challenge.activeTask);
+      if (ok) {
+        const timeBonus = Math.ceil(state.challenge.timer / 2);
+        state.challenge.score += 10 + timeBonus;
+        state.challenge.streak += 1;
+        state.challenge.level = Math.min(5, 1 + Math.floor(state.challenge.score / 80));
+        ui.explanationText.textContent = `✅ Correct! +${10 + timeBonus} points. Mini Summary: You aligned choices with market logic.`;
+        tone(true);
+        startChallengeRound();
+      }
+    }
+
+    const scenarios = [
+      {
+        name: "Increase in consumer income",
+        apply: () => animateParam("a", state.params.a + 16),
+        explain: "Demand shifts right because households can buy more. Equilibrium price and quantity rise."
+      },
+      {
+        name: "Fall in income",
+        apply: () => animateParam("a", state.params.a - 14),
+        explain: "Demand shifts left. Both equilibrium price and quantity fall."
+      },
+      {
+        name: "Festival season demand increase",
+        apply: () => animateParam("a", state.params.a + 12),
+        explain: "Temporary demand surge moves demand right; equilibrium price and quantity increase."
+      },
+      {
+        name: "Better technology increases supply",
+        apply: () => animateParam("c", state.params.c + 12),
+        explain: "Supply shifts right due to lower production costs. Price falls while quantity rises."
+      },
+      {
+        name: "Drought decreases supply",
+        apply: () => animateParam("c", state.params.c - 15),
+        explain: "Supply shifts left. Equilibrium price rises and equilibrium quantity falls."
+      },
+      {
+        name: "Rise in population increases demand",
+        apply: () => animateParam("a", state.params.a + 10),
+        explain: "More buyers shift demand right; both price and quantity at equilibrium rise."
+      }
+    ];
+
+    function runScenario() {
+      const sc = scenarios[state.scenarioIndex % scenarios.length];
+      state.scenarioIndex += 1;
+      sc.apply();
+      ui.explanationText.textContent = `Scenario: ${sc.name}. ${sc.explain}`;
+    }
+
+    // ---------- Helpers ----------
+    function bindEvents() {
+      Object.entries(sliders).forEach(([key, slider]) => {
+        slider.addEventListener("input", () => {
+          state.params[key] = Number(slider.value);
+          drawGraph();
+          evaluateChallenge();
+        });
+      });
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => setMode(btn.dataset.mode));
+      });
+
+      document.getElementById("toggleEqBtn").addEventListener("click", () => {
+        state.ui.showEquations = !state.ui.showEquations;
+        document.getElementById("toggleEqBtn").textContent = state.ui.showEquations ? "Hide Equations" : "Show Equations";
+        drawGraph();
+      });
+
+      document.getElementById("teacherBtn").addEventListener("click", () => {
+        state.ui.teacherMode = !state.ui.teacherMode;
+        document.getElementById("teacherBtn").textContent = `Teacher Mode: ${state.ui.teacherMode ? "On" : "Off"}`;
+        drawGraph();
+      });
+
+      document.getElementById("soundBtn").addEventListener("click", () => {
+        state.ui.soundOn = !state.ui.soundOn;
+        document.getElementById("soundBtn").textContent = `Sound: ${state.ui.soundOn ? "On" : "Off"}`;
+      });
+
+      document.getElementById("darkBtn").addEventListener("click", () => {
+        state.ui.darkMode = !state.ui.darkMode;
+        document.body.classList.toggle("dark", state.ui.darkMode);
+      });
+
+      document.getElementById("whyBtn").addEventListener("click", () => {
+        const eq = solveEquilibrium(state.params);
+        ui.explanationText.textContent = `Why: Equilibrium occurs where Qd = Qs. Using P*=(a-c)/(b+d), now P*=${eq.pStar.toFixed(2)} and Q*=${eq.qStar.toFixed(2)}.`;
+      });
+
+      document.getElementById("stepBtn").addEventListener("click", () => {
+        state.ui.stepMode = !state.ui.stepMode;
+        if (state.ui.stepMode) {
+          ui.explanationText.textContent = "Step-by-step: Demand slopes downward because higher prices reduce quantity demanded. Supply slopes upward because higher prices encourage production. Their intersection is equilibrium.";
+        } else {
+          drawGraph();
+        }
+      });
+
+      document.getElementById("randomBtn").addEventListener("click", () => {
+        if (state.mode === "scenario") {
+          runScenario();
+        } else {
+          randomizeParams();
+        }
+      });
+
+      document.getElementById("resetBtn").addEventListener("click", resetAll);
+    }
+
+    function randomizeParams() {
+      state.params.a = rand(70, 130);
+      state.params.b = rand(2, 8, 0.5);
+      state.params.c = rand(0, 60);
+      state.params.d = rand(2, 8, 0.5);
+      state.params.price = rand(4, 24, 0.1);
+      syncSliders();
+      drawGraph();
+      ui.explanationText.textContent = "Random market generated. Try finding the new equilibrium.";
+    }
+
+    function resetAll() {
+      Object.assign(state.params, { a: 100, b: 4, c: 20, d: 3, price: 8 });
+      state.challenge.score = 0;
+      state.challenge.streak = 0;
+      state.challenge.level = 1;
+      state.challenge.timer = 30;
+      state.ui.stepMode = false;
+      syncSliders();
+      drawGraph();
+      if (state.mode === "challenge") startChallengeRound();
+      ui.explanationText.textContent = "Reset complete. Use the controls to explore equilibrium again.";
+    }
+
+    function syncSliders() {
+      Object.entries(sliders).forEach(([k, el]) => (el.value = state.params[k]));
+    }
+
+    function animateParam(key, target) {
+      target = Math.max(Number(sliders[key].min), Math.min(Number(sliders[key].max), target));
+      const start = state.params[key];
+      const steps = 24;
+      let i = 0;
+      const timer = setInterval(() => {
+        i += 1;
+        state.params[key] = start + (target - start) * (i / steps);
+        syncSliders();
+        drawGraph();
+        if (i >= steps) clearInterval(timer);
+      }, 16);
+    }
+
+    function rand(min, max, step = 1) {
+      const n = min + Math.random() * (max - min);
+      return Math.round(n / step) * step;
+    }
+
+    // ---------- Sound & tooltips ----------
+    function tone(success) {
+      if (!state.ui.soundOn || !window.AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = success ? 740 : 280;
+      gain.gain.value = 0.03;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.11);
+    }
+
+    function attachTooltip(node) {
+      node.addEventListener("mousemove", e => {
+        const tip = node.dataset.tip;
+        if (!tip) return;
+        ui.tooltip.textContent = tip;
+        ui.tooltip.style.left = `${e.clientX}px`;
+        ui.tooltip.style.top = `${e.clientY}px`;
+        ui.tooltip.style.opacity = 1;
+      });
+      node.addEventListener("mouseleave", () => (ui.tooltip.style.opacity = 0));
+    }
+
+    // ---------- Boot ----------
+    bindEvents();
+    syncSliders();
+    drawGraph();
+  </script>
+</body>
+</html>
